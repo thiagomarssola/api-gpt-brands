@@ -13,7 +13,7 @@ app.post("/responder", async (req, res) => {
   const { mensagem, telefone, canal, vendedora } = req.body;
 
   const payload = {
-    model: "gpt-4o-mini",
+    model: "gpt-4o",
     messages: [
       { role: "system", content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva." },
       { role: "user", content: mensagem }
