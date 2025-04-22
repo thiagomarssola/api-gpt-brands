@@ -11,13 +11,20 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const rawBody = req.body.root;
+    const raw = req.body?.root;
 
-    if (!rawBody) {
+    if (!raw || typeof raw !== "string") {
+      console.log("❌ Erro: Campo root ausente ou não é string.");
       return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
     }
 
-    const body = JSON.parse(rawBody);
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch (e) {
+      console.log("❌ Erro ao fazer parse do conteúdo de root:", raw);
+      return res.status(400).json({ error: "Body.root não é um JSON válido." });
+    }
 
     const { mensagem, telefone, canal, vendedora } = body;
 
@@ -25,7 +32,7 @@ app.post("/responder", async (req, res) => {
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    // Gatilho fixo: pressão alta
+    // 🎯 Gatilho: PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
@@ -38,13 +45,14 @@ app.post("/responder", async (req, res) => {
       });
     }
 
+    // IA normal
     const payload = {
       model: "gpt-4o",
       messages: [
         {
           role: "system",
           content:
-            "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
+            "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva.",
         },
         { role: "user", content: mensagem },
       ],
@@ -72,7 +80,7 @@ app.post("/responder", async (req, res) => {
     });
   } catch (err) {
     console.error("❌ Erro detalhado:", err.response?.data || err.message);
-    res.status(500).json({ error: "Erro ao gerar resposta da IA." });
+    res.status(500).json({ error: "Erro interno no servidor da IA." });
   }
 });
 
