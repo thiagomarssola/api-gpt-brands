@@ -3,8 +3,7 @@ const axios = require("axios");
 const cors = require("cors");
 require("dotenv").config();
 
-const app = express(); // ✅ Aqui você define 'app'
-
+const app = express();
 app.use(cors());
 app.use(express.json());
 
@@ -12,28 +11,29 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const keys = Object.keys(req.body);
-    const firstKey = keys[0];
+    const firstKey = Object.keys(req.body)[0]; // 💡 Corrige o formato que o BotConversa envia
 
     if (!firstKey) {
-      console.log("❌ Nenhuma chave no body.");
-      return res.status(400).json({ error: "Body inválido." });
+      console.log("❌ Nenhuma chave encontrada no body.");
+      return res.status(400).json({ error: "Formato da requisição inválido." });
     }
 
-    let parsed;
+    let body;
     try {
-      parsed = JSON.parse(firstKey);
+      body = JSON.parse(firstKey);
     } catch (e) {
-      console.log("❌ Erro ao fazer parse da chave:", firstKey);
-      return res.status(400).json({ error: "Formato da requisição inválido (chave não parseável)." });
+      console.log("❌ Falha ao fazer parse da chave:", firstKey);
+      return res.status(400).json({ error: "Chave recebida não é um JSON válido." });
     }
 
-    const { mensagem, telefone, canal, vendedora } = parsed;
+    const { mensagem, telefone, canal, vendedora } = body;
 
     if (!mensagem || !telefone) {
+      console.log("❌ mensagem ou telefone ausente:", body);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
+    // 🎯 Gatilho direto: PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
@@ -51,7 +51,8 @@ app.post("/responder", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português.",
+          content:
+            "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
         },
         { role: "user", content: mensagem },
       ],
@@ -78,12 +79,12 @@ app.post("/responder", async (req, res) => {
       vendedora,
     });
   } catch (err) {
-    console.error("❌ Erro interno:", err.response?.data || err.message);
+    console.error("❌ Erro inesperado:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro interno no servidor da IA." });
   }
 });
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log("🚀 Servidor rodando na porta " + port);
+  console.log("🚀 Servidor rodando com suporte total ao BotConversa.");
 });
