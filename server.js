@@ -1,40 +1,28 @@
-const express = require("express");
-const axios = require("axios");
-const cors = require("cors");
-require("dotenv").config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 app.post("/responder", async (req, res) => {
   try {
-    const keys = Object.keys(req.body);
-    const firstKey = keys[0];
+    const raw = req.body?.root;
 
-    if (!firstKey) {
-      console.log("❌ Nenhuma chave no body.");
-      return res.status(400).json({ error: "Body inválido." });
+    if (!raw || typeof raw !== "string") {
+      console.log("❌ root ausente ou não é string:", raw);
+      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
     }
 
-    let parsed;
+    let body;
     try {
-      parsed = JSON.parse(firstKey);
+      body = JSON.parse(raw);
     } catch (e) {
-      console.log("❌ Não foi possível fazer parse da chave:", firstKey);
-      return res.status(400).json({ error: "Formato da requisição inválido (chave não parseável)." });
+      console.log("❌ JSON inválido no root:", raw);
+      return res.status(400).json({ error: "Body.root não é um JSON válido." });
     }
 
-    const { mensagem, telefone, canal, vendedora } = parsed;
+    const { mensagem, telefone, canal, vendedora } = body;
 
     if (!mensagem || !telefone) {
-      console.log("❌ Mensagem ou telefone ausente:", parsed);
+      console.log("❌ mensagem ou telefone ausente:", body);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    // Gatilho: PRESSÃO ALTA
+    // 👇 Gatilho PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
@@ -83,9 +71,4 @@ app.post("/responder", async (req, res) => {
     console.error("❌ Erro interno:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro interno no servidor da IA." });
   }
-});
-
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log("🚀 Servidor rodando com parse forçado do BotConversa bugado");
 });
