@@ -15,9 +15,16 @@ app.post("/responder", async (req, res) => {
   const payload = {
     model: "gpt-4o",
     messages: [
-      { role: "system", content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva." },
-      { role: "user", content: mensagem }
-    ]
+      {
+        role: "system",
+        content:
+          "Você é uma consultora de vendas empática e profissional. Sempre responda em português, de forma clara, objetiva e amigável.",
+      },
+      {
+        role: "user",
+        content: mensagem,
+      },
+    ],
   };
 
   try {
@@ -27,8 +34,8 @@ app.post("/responder", async (req, res) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
-        }
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
       }
     );
 
@@ -39,11 +46,16 @@ app.post("/responder", async (req, res) => {
       resposta: output,
       remetente: telefone,
       canal,
-      vendedora
+      vendedora,
     });
   } catch (err) {
-    console.error(err.response ? err.response.data : err.message);
-    res.status(500).json({ error: "Erro ao gerar resposta da IA." });
+    console.error(
+      "Erro interno:",
+      err.response ? err.response.data : err.message
+    );
+    res
+      .status(500)
+      .json({ error: "Erro ao gerar resposta da IA." });
   }
 });
 
