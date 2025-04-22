@@ -7,18 +7,25 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔎 Interpreta o campo "root" do BotConversa
+// 🔧 Middleware para corrigir formato bugado do BotConversa
 app.use((req, res, next) => {
   try {
-    if (typeof req.body === "object" && typeof req.body.root === "string") {
+    // 📥 Captura o body bruto vindo com chave anômala
+    const bodyKeys = Object.keys(req.body);
+    if (bodyKeys.length === 1 && bodyKeys[0].includes("root")) {
+      const rawString = bodyKeys[0];
+      const jsonParsed = JSON.parse(rawString);
+      req.body = JSON.parse(jsonParsed.root);
+      console.log("📩 root corrigido do formato bugado:", req.body);
+    } else if (typeof req.body.root === "string") {
       req.body = JSON.parse(req.body.root);
-      console.log("📩 root parseado:", req.body);
+      console.log("📩 root parseado (formato normal):", req.body);
     } else {
-      console.log("📩 Body recebido sem root:", req.body);
+      console.log("📩 Body sem root:", req.body);
     }
     next();
   } catch (err) {
-    console.error("❌ Erro ao interpretar root:", err.message);
+    console.error("❌ Erro ao processar root:", err.message);
     return res.status(400).json({ error: "Body.root inválido ou ausente." });
   }
 });
@@ -58,7 +65,7 @@ app.post("/responder", async (req, res) => {
 
     const output = resposta.data.choices[0].message.content;
 
-    // 🎯 Lógica de resposta com áudio para gatilho de pressão alta
+    // Gatilho PRESSÃO ALTA com áudio
     let audio = null;
     if (mensagem.toLowerCase().includes("pressão alta") || mensagem.toLowerCase().includes("pressao alta")) {
       console.log("🎯 Ativado: Gatilho PRESSÃO ALTA");
@@ -72,11 +79,11 @@ app.post("/responder", async (req, res) => {
       audio,
       remetente: telefone,
       canal,
-      vendedora,
+      vendedora
     });
 
   } catch (err) {
-    console.error("❌ Erro ao responder:", err.response?.data || err.message);
+    console.error("❌ Erro no processamento final:", err.response?.data || err.message);
     return res.status(500).json({ error: "Erro ao gerar resposta da IA." });
   }
 });
