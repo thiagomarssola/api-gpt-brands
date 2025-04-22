@@ -6,51 +6,35 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Middleware para log
 app.use((req, res, next) => {
   console.log("📩 Body recebido:", req.body);
   next();
 });
+
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const bodyKeys = Object.keys(req.body);
+    let rawRoot;
 
-    if (!bodyKeys.length) {
-      console.log("❌ Nenhuma chave recebida no body.");
-      return res.status(400).json({ error: "Body mal formatado (nenhuma chave)." });
+    // Detecta se está vindo no formato bugado
+    const chaveBugada = Object.keys(req.body)[0];
+    if (chaveBugada && chaveBugada.includes("root")) {
+      rawRoot = JSON.parse(chaveBugada)["root"];
+    } else {
+      rawRoot = req.body.root;
     }
 
-    const rawEntry = bodyKeys[0]; // Pega a chave que chegou como string gigante
-
-    let parsedRoot;
-    try {
-      const outerObject = JSON.parse(rawEntry);
-      parsedRoot = JSON.parse(outerObject.root);
-    } catch (e) {
-      console.log("❌ Falha ao fazer double parse:", rawEntry);
-      return res.status(400).json({ error: "Não foi possível interpretar o conteúdo do body." });
+    if (!rawRoot || typeof rawRoot !== "string") {
+      return res.status(400).json({ error: "Campo root ausente ou mal formatado." });
     }
 
-    const { mensagem, telefone, canal, vendedora } = parsedRoot;
+    const { mensagem, telefone, canal, vendedora } = JSON.parse(rawRoot);
 
     if (!mensagem || !telefone) {
-      console.log("❌ Mensagem ou telefone ausente:", parsedRoot);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
-    }
-
-    // 🎯 Gatilho PRESSÃO ALTA
-    if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
-      console.log("🎯 Ativado: Gatilho PRESSÃO ALTA");
-      return res.json({
-        modelo_usado: "gpt-4o",
-        resposta:
-          "Nós também te daremos um acompanhamento com a nossa Doutora, então fique tranquila que você pode tomar o remédio sem ter nenhum efeito colateral pois ele é 100% natural!",
-        audio: "audios/rayssa/pressao-alta.mp3",
-        remetente: telefone,
-        canal,
-        vendedora,
-      });
     }
 
     const payload = {
@@ -58,7 +42,7 @@ app.post("/responder", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "Você é uma consultora de vendas empática. Responda em português com clareza.",
+          content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva.",
         },
         { role: "user", content: mensagem },
       ],
@@ -77,20 +61,28 @@ app.post("/responder", async (req, res) => {
 
     const output = resposta.data.choices[0].message.content;
 
+    // Gatilho personalizado PRESSÃO ALTA
+    let audio = null;
+    if (mensagem.toLowerCase().includes("pressão alta")) {
+      console.log("🎯 Ativado: Gatilho PRESSÃO ALTA");
+      audio = "audios/rayssa/pressao-alta.mp3";
+    }
+
     res.json({
       modelo_usado: "gpt-4o",
       resposta: output,
+      audio,
       remetente: telefone,
       canal,
       vendedora,
     });
   } catch (err) {
-    console.error("❌ Erro interno:", err.response?.data || err.message);
-    res.status(500).json({ error: "Erro no servidor da IA." });
+    console.error("❌ Erro detalhado:", err.response?.data || err.message);
+    res.status(500).json({ error: "Erro ao gerar resposta da IA." });
   }
 });
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log("🚀 Servidor rodando — modo compatível BotConversa bugado ativado");
+  console.log(`🚀 Servidor rodando na porta ${port}`);
 });
