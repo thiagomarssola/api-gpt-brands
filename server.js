@@ -10,24 +10,25 @@ app.use(express.json());
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
-  const { mensagem, telefone, canal, vendedora } = req.body;
-
-  const payload = {
-    model: "gpt-4o",
-    messages: [
-      {
-        role: "system",
-        content:
-          "Você é uma consultora de vendas empática e profissional. Sempre responda em português, de forma clara, objetiva e amigável.",
-      },
-      {
-        role: "user",
-        content: mensagem,
-      },
-    ],
-  };
-
   try {
+    // Ajuste aqui: extrai a string do root e faz parse do JSON válido
+    const rawBody = req.body.root;
+    const body = JSON.parse(rawBody); // isso transforma a string JSON em objeto
+
+    const { mensagem, telefone, canal, vendedora } = body;
+
+    const payload = {
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva.",
+        },
+        { role: "user", content: mensagem },
+      ],
+    };
+
     const resposta = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       payload,
@@ -49,13 +50,10 @@ app.post("/responder", async (req, res) => {
       vendedora,
     });
   } catch (err) {
-    console.error(
-      "Erro interno:",
-      err.response ? err.response.data : err.message
-    );
+    console.error("Erro detalhado:", err.response?.data || err.message);
     res
       .status(500)
-      .json({ error: "Erro ao gerar resposta da IA." });
+      .json({ error: "Erro ao gerar resposta da IA. Verifique o corpo da requisição." });
   }
 });
 
