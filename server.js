@@ -1,8 +1,6 @@
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
-const fs = require("fs");
-const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -14,36 +12,10 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 app.post("/responder", async (req, res) => {
   const { mensagem, telefone, canal, vendedora } = req.body;
 
-  const slug = mensagem.toLowerCase();
-  const palavrasChave = [
-    { chave: "pressão alta", arquivo: "pressao-alta.mp3" },
-    { chave: "pressao alta", arquivo: "pressao-alta.mp3" }
-  ];
-
-  let audioEncontrado = null;
-  for (const item of palavrasChave) {
-    if (slug.includes(item.chave)) {
-      const audioPath = path.join(__dirname, "audios", vendedora, item.arquivo);
-      if (fs.existsSync(audioPath)) {
-        audioEncontrado = `/audios/${vendedora}/${item.arquivo}`;
-        break;
-      }
-    }
-  }
-
-  if (audioEncontrado) {
-    return res.json({
-      resposta: `[AUDIO] ${audioEncontrado}`,
-      remetente: telefone,
-      canal,
-      vendedora
-    });
-  }
-
   const payload = {
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: "Você é uma consultora de vendas empática e profissional. Responda com clareza e educação dúvidas sobre o uso do produto." },
+      { role: "system", content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português de forma clara e objetiva." },
       { role: "user", content: mensagem }
     ]
   };
@@ -63,6 +35,7 @@ app.post("/responder", async (req, res) => {
     const output = resposta.data.choices[0].message.content;
 
     res.json({
+      modelo_usado: "gpt-4o-mini",
       resposta: output,
       remetente: telefone,
       canal,
@@ -74,7 +47,7 @@ app.post("/responder", async (req, res) => {
   }
 });
 
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });
