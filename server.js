@@ -11,36 +11,35 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const firstKey = Object.keys(req.body)[0];
-    const parsed = JSON.parse(firstKey);
-    const rawBody = parsed.root;
+    const { mensagem, telefone, canal, vendedora } = req.body;
 
-    if (!rawBody) {
-      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
+    if (!mensagem || !telefone) {
+      return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    const body = JSON.parse(rawBody);
-    const { mensagem, telefone, canal, vendedora } = body;
-
-    // 👇 Gatilho direto para PRESSÃO ALTA
+    // Gatilho direto para PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
-        resposta: "Nós também te daremos um acompanhamento com a nossa Doutora, então fique tranquila que você pode tomar o remédio sem ter nenhum efeito colateral pois ele é 100% natural!",
+        resposta:
+          "Nós também te daremos um acompanhamento com a nossa Doutora, então fique tranquila que você pode tomar o remédio sem ter nenhum efeito colateral pois ele é 100% natural!",
         audio: "audios/rayssa/pressao-alta.mp3",
         remetente: telefone,
         canal,
-        vendedora
+        vendedora,
       });
     }
 
-    // Se não bater no gatilho, segue com IA normal
     const payload = {
       model: "gpt-4o",
       messages: [
-        { role: "system", content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza." },
-        { role: "user", content: mensagem }
-      ]
+        {
+          role: "system",
+          content:
+            "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
+        },
+        { role: "user", content: mensagem },
+      ],
     };
 
     const resposta = await axios.post(
@@ -49,8 +48,8 @@ app.post("/responder", async (req, res) => {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_API_KEY}`
-        }
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
       }
     );
 
@@ -61,10 +60,10 @@ app.post("/responder", async (req, res) => {
       resposta: output,
       remetente: telefone,
       canal,
-      vendedora
+      vendedora,
     });
   } catch (err) {
-    console.error("Erro detalhado:", err.response?.data || err.message);
+    console.error("❌ Erro detalhado:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro ao gerar resposta da IA." });
   }
 });
