@@ -11,13 +11,21 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const { mensagem, telefone, canal, vendedora } = req.body;
+    const rawBody = req.body.root;
+
+    if (!rawBody) {
+      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
+    }
+
+    const body = JSON.parse(rawBody);
+
+    const { mensagem, telefone, canal, vendedora } = body;
 
     if (!mensagem || !telefone) {
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    // Gatilho direto para PRESSÃO ALTA
+    // Gatilho fixo: pressão alta
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
