@@ -13,14 +13,25 @@ app.post("/responder", async (req, res) => {
   try {
     console.log("📩 req.body recebido:", req.body);
 
-    const rawBody = req.body.root;
+    // Captura a primeira chave malformada
+    const firstKey = Object.keys(req.body)[0];
 
-    if (!rawBody) {
-      console.log("❌ Campo 'root' ausente ou vazio!");
-      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
+    if (!firstKey) {
+      console.log("❌ Body malformado, nenhuma chave válida.");
+      return res.status(400).json({ error: "Requisição malformada." });
     }
 
-    const body = JSON.parse(rawBody); // transforma a string JSON em objeto
+    // Tenta fazer o parse do conteúdo da chave
+    const bodyParsed = JSON.parse(firstKey);
+
+    const rawBody = bodyParsed.root;
+
+    if (!rawBody) {
+      console.log("❌ Campo 'root' ausente no JSON da chave malformada.");
+      return res.status(400).json({ error: "Campo 'root' não encontrado." });
+    }
+
+    const body = JSON.parse(rawBody);
 
     const { mensagem, telefone, canal, vendedora } = body;
 
