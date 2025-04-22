@@ -35,7 +35,7 @@ app.post("/responder", async (req, res) => {
     const output = resposta.data.choices[0].message.content;
 
     res.json({
-      modelo_usado: "gpt-4o-mini",
+      modelo_usado: "gpt-4o",
       resposta: output,
       remetente: telefone,
       canal,
