@@ -11,19 +11,21 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const firstKey = Object.keys(req.body)[0]; // 💡 Corrige o formato que o BotConversa envia
+    const raw = req.body?.root;
 
-    if (!firstKey) {
-      console.log("❌ Nenhuma chave encontrada no body.");
-      return res.status(400).json({ error: "Formato da requisição inválido." });
+    console.log("📩 Body recebido:", req.body);
+
+    if (!raw || typeof raw !== "string") {
+      console.log("❌ Campo 'root' ausente ou não é string:", raw);
+      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
     }
 
     let body;
     try {
-      body = JSON.parse(firstKey);
+      body = JSON.parse(raw);
     } catch (e) {
-      console.log("❌ Falha ao fazer parse da chave:", firstKey);
-      return res.status(400).json({ error: "Chave recebida não é um JSON válido." });
+      console.log("❌ Erro ao fazer parse do JSON do root:", raw);
+      return res.status(400).json({ error: "Body.root não é um JSON válido." });
     }
 
     const { mensagem, telefone, canal, vendedora } = body;
@@ -33,8 +35,9 @@ app.post("/responder", async (req, res) => {
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    // 🎯 Gatilho direto: PRESSÃO ALTA
+    // 🎯 Gatilho PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
+      console.log("🎯 Gatilho PRESSÃO ALTA identificado");
       return res.json({
         modelo_usado: "gpt-4o",
         resposta:
@@ -51,8 +54,7 @@ app.post("/responder", async (req, res) => {
       messages: [
         {
           role: "system",
-          content:
-            "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
+          content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
         },
         { role: "user", content: mensagem },
       ],
@@ -86,5 +88,5 @@ app.post("/responder", async (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log("🚀 Servidor rodando com suporte total ao BotConversa.");
+  console.log("🚀 Servidor rodando e 100% compatível com BotConversa + root fixo");
 });
