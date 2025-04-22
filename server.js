@@ -6,7 +6,10 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use((req, res, next) => {
+  console.log("📩 Body recebido:", req.body);
+  next();
+});
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
