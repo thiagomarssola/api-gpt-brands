@@ -7,33 +7,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Middleware para log
+// 🔎 Interpreta o campo "root" do BotConversa
 app.use((req, res, next) => {
-  console.log("📩 Body recebido:", req.body);
-  next();
+  try {
+    if (typeof req.body === "object" && typeof req.body.root === "string") {
+      req.body = JSON.parse(req.body.root);
+      console.log("📩 root parseado:", req.body);
+    } else {
+      console.log("📩 Body recebido sem root:", req.body);
+    }
+    next();
+  } catch (err) {
+    console.error("❌ Erro ao interpretar root:", err.message);
+    return res.status(400).json({ error: "Body.root inválido ou ausente." });
+  }
 });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    let rawRoot;
-
-    // Detecta se está vindo no formato bugado
-    const chaveBugada = Object.keys(req.body)[0];
-    if (chaveBugada && chaveBugada.includes("root")) {
-      rawRoot = JSON.parse(chaveBugada)["root"];
-    } else {
-      rawRoot = req.body.root;
-    }
-
-    if (!rawRoot || typeof rawRoot !== "string") {
-      return res.status(400).json({ error: "Campo root ausente ou mal formatado." });
-    }
-
-    const { mensagem, telefone, canal, vendedora } = JSON.parse(rawRoot);
+    const { mensagem, telefone, canal, vendedora } = req.body;
 
     if (!mensagem || !telefone) {
+      console.log("❌ mensagem ou telefone ausente:", req.body);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
@@ -61,14 +58,15 @@ app.post("/responder", async (req, res) => {
 
     const output = resposta.data.choices[0].message.content;
 
-    // Gatilho personalizado PRESSÃO ALTA
+    // 🎯 Lógica de resposta com áudio para gatilho de pressão alta
     let audio = null;
-    if (mensagem.toLowerCase().includes("pressão alta")) {
+    if (mensagem.toLowerCase().includes("pressão alta") || mensagem.toLowerCase().includes("pressao alta")) {
       console.log("🎯 Ativado: Gatilho PRESSÃO ALTA");
       audio = "audios/rayssa/pressao-alta.mp3";
     }
 
-    res.json({
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({
       modelo_usado: "gpt-4o",
       resposta: output,
       audio,
@@ -76,9 +74,10 @@ app.post("/responder", async (req, res) => {
       canal,
       vendedora,
     });
+
   } catch (err) {
-    console.error("❌ Erro detalhado:", err.response?.data || err.message);
-    res.status(500).json({ error: "Erro ao gerar resposta da IA." });
+    console.error("❌ Erro ao responder:", err.response?.data || err.message);
+    return res.status(500).json({ error: "Erro ao gerar resposta da IA." });
   }
 });
 
