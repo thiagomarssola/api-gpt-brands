@@ -11,33 +11,34 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 app.post("/responder", async (req, res) => {
   try {
-    const raw = req.body?.root;
+    const bodyKeys = Object.keys(req.body);
 
-    console.log("📩 Body recebido:", req.body);
-
-    if (!raw || typeof raw !== "string") {
-      console.log("❌ Campo 'root' ausente ou não é string:", raw);
-      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
+    if (!bodyKeys.length) {
+      console.log("❌ Nenhuma chave recebida no body.");
+      return res.status(400).json({ error: "Body mal formatado (nenhuma chave)." });
     }
 
-    let body;
+    const rawEntry = bodyKeys[0]; // Pega a chave que chegou como string gigante
+
+    let parsedRoot;
     try {
-      body = JSON.parse(raw);
+      const outerObject = JSON.parse(rawEntry);
+      parsedRoot = JSON.parse(outerObject.root);
     } catch (e) {
-      console.log("❌ Erro ao fazer parse do JSON do root:", raw);
-      return res.status(400).json({ error: "Body.root não é um JSON válido." });
+      console.log("❌ Falha ao fazer double parse:", rawEntry);
+      return res.status(400).json({ error: "Não foi possível interpretar o conteúdo do body." });
     }
 
-    const { mensagem, telefone, canal, vendedora } = body;
+    const { mensagem, telefone, canal, vendedora } = parsedRoot;
 
     if (!mensagem || !telefone) {
-      console.log("❌ mensagem ou telefone ausente:", body);
+      console.log("❌ Mensagem ou telefone ausente:", parsedRoot);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
     // 🎯 Gatilho PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
-      console.log("🎯 Gatilho PRESSÃO ALTA identificado");
+      console.log("🎯 Ativado: Gatilho PRESSÃO ALTA");
       return res.json({
         modelo_usado: "gpt-4o",
         resposta:
@@ -54,7 +55,7 @@ app.post("/responder", async (req, res) => {
       messages: [
         {
           role: "system",
-          content: "Você é uma consultora de vendas empática e profissional. Sempre responda em português com clareza.",
+          content: "Você é uma consultora de vendas empática. Responda em português com clareza.",
         },
         { role: "user", content: mensagem },
       ],
@@ -81,12 +82,12 @@ app.post("/responder", async (req, res) => {
       vendedora,
     });
   } catch (err) {
-    console.error("❌ Erro inesperado:", err.response?.data || err.message);
-    res.status(500).json({ error: "Erro interno no servidor da IA." });
+    console.error("❌ Erro interno:", err.response?.data || err.message);
+    res.status(500).json({ error: "Erro no servidor da IA." });
   }
 });
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log("🚀 Servidor rodando e 100% compatível com BotConversa + root fixo");
+  console.log("🚀 Servidor rodando — modo compatível BotConversa bugado ativado");
 });
