@@ -1,28 +1,39 @@
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
+require("dotenv").config();
+
+const app = express(); // ✅ Aqui você define 'app'
+
+app.use(cors());
+app.use(express.json());
+
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 app.post("/responder", async (req, res) => {
   try {
-    const raw = req.body?.root;
+    const keys = Object.keys(req.body);
+    const firstKey = keys[0];
 
-    if (!raw || typeof raw !== "string") {
-      console.log("❌ root ausente ou não é string:", raw);
-      return res.status(400).json({ error: "Body.root ausente ou mal formatado." });
+    if (!firstKey) {
+      console.log("❌ Nenhuma chave no body.");
+      return res.status(400).json({ error: "Body inválido." });
     }
 
-    let body;
+    let parsed;
     try {
-      body = JSON.parse(raw);
+      parsed = JSON.parse(firstKey);
     } catch (e) {
-      console.log("❌ JSON inválido no root:", raw);
-      return res.status(400).json({ error: "Body.root não é um JSON válido." });
+      console.log("❌ Erro ao fazer parse da chave:", firstKey);
+      return res.status(400).json({ error: "Formato da requisição inválido (chave não parseável)." });
     }
 
-    const { mensagem, telefone, canal, vendedora } = body;
+    const { mensagem, telefone, canal, vendedora } = parsed;
 
     if (!mensagem || !telefone) {
-      console.log("❌ mensagem ou telefone ausente:", body);
       return res.status(400).json({ error: "Mensagem ou telefone ausente." });
     }
 
-    // 👇 Gatilho PRESSÃO ALTA
     if (/press[aã]o alta|hipertens[aã]o|hipertensa/i.test(mensagem)) {
       return res.json({
         modelo_usado: "gpt-4o",
@@ -35,7 +46,6 @@ app.post("/responder", async (req, res) => {
       });
     }
 
-    // Fluxo padrão com IA
     const payload = {
       model: "gpt-4o",
       messages: [
@@ -71,4 +81,9 @@ app.post("/responder", async (req, res) => {
     console.error("❌ Erro interno:", err.response?.data || err.message);
     res.status(500).json({ error: "Erro interno no servidor da IA." });
   }
+});
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log("🚀 Servidor rodando na porta " + port);
 });
